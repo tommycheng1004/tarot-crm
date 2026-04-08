@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>占星塔羅 專屬管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-stone-50 min-h-screen pb-32 relative">
+
+    <!-- 頂部導覽列 -->
+    <div class="bg-[#fcfaff] p-4 sticky top-0 z-10 border-b border-violet-100 flex items-center justify-between shadow-sm">
+        <h1 class="text-lg font-bold text-violet-900 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-violet-600"></i> 占星塔羅管理系統
+        </h1>
+        <button onclick="toggleSettings()" class="text-stone-500 p-2 hover:bg-stone-200 rounded-full transition-colors" title="系統設定">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- 設定 Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-violet-900 flex items-center gap-2">
+                    <i data-lucide="cloud" class="w-5 h-5 text-violet-600"></i> 綁定資料庫
+                </h2>
+                <button onclick="toggleSettings()" class="text-stone-400 hover:text-stone-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p class="text-sm text-stone-500 mb-4">請貼上 Google Apps Script 網址 (結尾為 /exec)。此網址會自動記憶在您的手機或電腦中。</p>
+            <textarea id="gasUrl" class="w-full p-4 bg-stone-50 rounded-2xl outline-none focus:ring-2 focus:ring-violet-500 border border-stone-200 text-sm mb-4 break-all h-32" placeholder="https://script.google.com/macros/s/..."></textarea>
+            <button onclick="toggleSettings()" class="w-full bg-violet-600 text-white p-3 rounded-xl font-bold hover:bg-violet-700 active:scale-95 transition-all">完成設定</button>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto p-5 space-y-6 mt-2">
+
+        <!-- ==================== 個案基本資料 ==================== -->
+        <section class="bg-white p-6 rounded-3xl shadow-sm border border-violet-50">
+            <h2 class="font-bold text-violet-900 mb-4 border-b border-violet-100 pb-2 flex items-center gap-2">
+                <i data-lucide="user" class="w-5 h-5 text-violet-600"></i> 個案基本建檔
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-bold text-stone-600 mb-1">姓名 *</label>
+                    <input type="text" id="clientName" class="w-full p-3 bg-stone-50 rounded-xl outline-none focus:ring-2 focus:ring-violet-500" placeholder="輸入姓名">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-stone-600 mb-1">電話</label>
+                    <input type="tel" id="clientPhone" class="w-full p-3 bg-stone-50 rounded-xl outline-none focus:ring-2 focus:ring-violet-500" placeholder="輸入電話">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-stone-600 mb-2">性別</label>
+                <div class="flex bg-stone-100 p-1.5 rounded-2xl">
+                    <button type="button" onclick="setGender('女')" id="gen-女" class="gender-btn flex-1 py-3 rounded-xl font-bold transition-all bg-white shadow text-violet-700">女</button>
+                    <button type="button" onclick="setGender('男')" id="gen-男" class="gender-btn flex-1 py-3 rounded-xl font-bold transition-all text-stone-500">男</button>
+                    <button type="button" onclick="setGender('其他')" id="gen-其他" class="gender-btn flex-1 py-3 rounded-xl font-bold transition-all text-stone-500">其他</button>
+                </div>
+                <input type="hidden" id="clientGender" value="女">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-stone-600 mb-1">背景 / 備註</label>
+                <textarea id="clientNotes" class="w-full p-4 bg-stone-50 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 h-24" placeholder="記錄個案的背景故事、特殊狀況..."></textarea>
+            </div>
+        </section>
+
+        <!-- ==================== 占卜紀錄 ==================== -->
+        <section class="bg-white p-6 rounded-3xl shadow-sm border border-violet-50">
+            <h2 class="font-bold text-violet-900 mb-4 border-b border-violet-100 pb-2 flex items-center gap-2">
+                <i data-lucide="layers" class="w-5 h-5 text-violet-600"></i> 本次占卜紀錄
+            </h2>
+            
+            <div class="mb-5">
+                <label class="block text-sm font-bold text-stone-600 mb-3">占卜日期</label>
+                <input type="date" id="recordDate" class="w-full p-3 bg-stone-50 rounded-xl outline-none focus:ring-2 focus:ring-violet-500">
+            </div>
+
+            <!-- 問題類別 -->
+            <div class="mb-5">
+                <label class="block text-sm font-bold text-stone-600 mb-3">問題類別</label>
+                <div class="flex gap-3">
+                    <button type="button" onclick="setCategory('感情')" id="cat-感情" class="cat-btn flex-1 py-3 flex flex-col items-center gap-1.5 rounded-2xl border-2 transition-all border-pink-400 bg-pink-50 text-pink-700 shadow-sm">
+                        <i data-lucide="heart" class="w-5 h-5"></i> <span class="text-xs font-bold">感情</span>
+                    </button>
+                    <button type="button" onclick="setCategory('工作')" id="cat-工作" class="cat-btn flex-1 py-3 flex flex-col items-center gap-1.5 rounded-2xl border-2 transition-all border-stone-100 bg-white text-stone-400">
+                        <i data-lucide="briefcase" class="w-5 h-5"></i> <span class="text-xs font-bold">工作</span>
+                    </button>
+                    <button type="button" onclick="setCategory('人際')" id="cat-人際" class="cat-btn flex-1 py-3 flex flex-col items-center gap-1.5 rounded-2xl border-2 transition-all border-stone-100 bg-white text-stone-400">
+                        <i data-lucide="users" class="w-5 h-5"></i> <span class="text-xs font-bold">人際</span>
+                    </button>
+                </div>
+                <input type="hidden" id="recordCategory" value="感情">
+            </div>
+            
+            <!-- 占卜問題 -->
+            <div class="mb-5">
+                <label class="block text-sm font-bold text-stone-600 mb-2">具體問題 *</label>
+                <textarea id="recordIssue" class="w-full p-4 bg-stone-50 rounded-2xl h-20 focus:ring-2 focus:ring-violet-500 outline-none" placeholder="想問未來三個月的工作發展..."></textarea>
+            </div>
+
+            <!-- 牌卡選擇器 (韋特 78 張) -->
+            <div class="bg-violet-50/50 p-4 rounded-3xl border border-violet-100 mb-5">
+                <label class="block text-sm font-bold text-violet-800 mb-3 flex items-center gap-1">
+                    <i data-lucide="layers" class="w-4 h-4"></i> 建立抽牌陣容
+                </label>
+                
+                <div class="relative mb-3">
+                    <input type="text" id="cardSearchInput" placeholder="搜尋牌卡 (例：愚者、聖杯)..." class="w-full p-3 pl-10 bg-white border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-sm" oninput="handleSearch()">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3.5 text-violet-400"></i>
+                    
+                    <!-- 搜尋建議選單 -->
+                    <div id="searchResults" class="absolute z-10 w-full mt-1 bg-white border border-violet-100 rounded-xl shadow-lg overflow-hidden hidden max-h-48 overflow-y-auto">
+                        <!-- JS 動態產生選項 -->
+                    </div>
+                </div>
+
+                <!-- 已選牌卡展示區 -->
+                <div id="selectedCardsContainer" class="space-y-2">
+                    <div class="text-xs text-stone-400 text-center py-2" id="emptyCardMsg">尚未加入任何牌卡</div>
+                </div>
+            </div>
+
+            <!-- 解析與建議 -->
+            <div>
+                <label class="block text-sm font-bold text-stone-600 mb-2">解析與建議</label>
+                <textarea id="recordResult" class="w-full p-4 bg-stone-50 rounded-2xl h-40 focus:ring-2 focus:ring-violet-500 outline-none" placeholder="記錄牌陣解讀與給予個案的指引..."></textarea>
+            </div>
+        </section>
+
+        <!-- 浮動儲存按鈕 -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-stone-200 z-20">
+            <div class="max-w-3xl mx-auto">
+                <button id="saveBtn" onclick="submitData()" class="w-full bg-violet-600 text-white p-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 active:scale-95 transition-all shadow-lg">
+                    <i data-lucide="save" class="w-5 h-5"></i> 儲存個案與占卜紀錄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化圖示
+        lucide.createIcons();
+
+        // 網址記憶
+        document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('gasUrl').value = localStorage.getItem('tarotGasUrl') || '';
+        document.getElementById('gasUrl').addEventListener('input', function() {
+            localStorage.setItem('tarotGasUrl', this.value);
+        });
+
+        // 彈出視窗切換
+        function toggleSettings() {
+            document.getElementById('settingsModal').classList.toggle('hidden');
+        }
+
+        // 切換性別 UI
+        function setGender(gender) {
+            document.getElementById('clientGender').value = gender;
+            document.querySelectorAll('.gender-btn').forEach(btn => {
+                btn.className = "gender-btn flex-1 py-3 rounded-xl font-bold transition-all text-stone-500";
+            });
+            const activeBtn = document.getElementById('gen-' + gender);
+            activeBtn.className = "gender-btn flex-1 py-3 rounded-xl font-bold transition-all bg-white shadow text-violet-700";
+        }
+
+        // 切換類別 UI
+        const catConfig = {
+            '感情': { color: 'pink', border: 'border-pink-400', bg: 'bg-pink-50', text: 'text-pink-700' },
+            '工作': { color: 'blue', border: 'border-blue-400', bg: 'bg-blue-50', text: 'text-blue-700' },
+            '人際': { color: 'amber', border: 'border-amber-400', bg: 'bg-amber-50', text: 'text-amber-700' }
+        };
+
+        function setCategory(cat) {
+            document.getElementById('recordCategory').value = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn flex-1 py-3 flex flex-col items-center gap-1.5 rounded-2xl border-2 transition-all border-stone-100 bg-white text-stone-400";
+            });
+            const activeBtn = document.getElementById('cat-' + cat);
+            const conf = catConfig[cat];
+            activeBtn.className = `cat-btn flex-1 py-3 flex flex-col items-center gap-1.5 rounded-2xl border-2 transition-all ${conf.border} ${conf.bg} ${conf.text} shadow-sm`;
+        }
+
+        // ================= 塔羅牌選擇器邏輯 =================
+        const MAJOR_ARCANA = ['0 愚者', 'I 魔術師', 'II 女祭司', 'III 皇后', 'IV 皇帝', 'V 教皇', 'VI 戀人', 'VII 戰車', 'VIII 力量', 'IX 隱士', 'X 命運之輪', 'XI 正義', 'XII 倒吊人', 'XIII 死神', 'XIV 節制', 'XV 惡魔', 'XVI 高塔', 'XVII 星星', 'XVIII 月亮', 'XIX 太陽', 'XX 審判', 'XXI 世界'];
+        const SUITS = ['權杖', '聖杯', '寶劍', '錢幣'];
+        const RANKS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '侍者', '騎士', '王后', '國王'];
+        const MINOR_ARCANA = [];
+        SUITS.forEach(suit => { RANKS.forEach(rank => MINOR_ARCANA.push(suit + rank)); });
+        const TAROT_DECK = [...MAJOR_ARCANA, ...MINOR_ARCANA];
+
+        let selectedCardsList = []; // 存放已選牌卡
+
+        function handleSearch() {
+            const query = document.getElementById('cardSearchInput').value.trim();
+            const resultsBox = document.getElementById('searchResults');
+            
+            if (!query) {
+                resultsBox.classList.add('hidden');
+                return;
+            }
+
+            const filtered = TAROT_DECK.filter(card => card.includes(query)).slice(0, 6);
+            
+            if (filtered.length > 0) {
+                resultsBox.innerHTML = filtered.map(card => `
+                    <button type="button" onclick="addCard('${card}')" class="w-full text-left px-4 py-3 text-sm text-stone-700 hover:bg-violet-50 border-b border-stone-50 last:border-0 flex justify-between items-center">
+                        ${card} <i data-lucide="plus" class="w-4 h-4 text-violet-400"></i>
+                    </button>
+                `).join('');
+                lucide.createIcons();
+                resultsBox.classList.remove('hidden');
+            } else {
+                resultsBox.classList.add('hidden');
+            }
+        }
+
+        function addCard(cardName) {
+            selectedCardsList.push({ name: cardName, isReversed: false });
+            document.getElementById('cardSearchInput').value = '';
+            document.getElementById('searchResults').classList.add('hidden');
+            renderSelectedCards();
+        }
+
+        function removeCard(index) {
+            selectedCardsList.splice(index, 1);
+            renderSelectedCards();
+        }
+
+        function toggleReversed(index) {
+            selectedCardsList[index].isReversed = !selectedCardsList[index].isReversed;
+            renderSelectedCards();
+        }
+
+        function renderSelectedCards() {
+            const container = document.getElementById('selectedCardsContainer');
+            if (selectedCardsList.length === 0) {
+                container.innerHTML = `<div class="text-xs text-stone-400 text-center py-2" id="emptyCardMsg">尚未加入任何牌卡</div>`;
+                return;
+            }
+
+            container.innerHTML = selectedCardsList.map((card, index) => {
+                const borderClass = card.isReversed ? 'bg-stone-100 border-stone-200' : 'bg-white border-violet-200 shadow-sm';
+                const textClass = card.isReversed ? 'text-stone-600' : 'text-violet-700';
+                const badgeClass = card.isReversed ? 'bg-stone-200 text-stone-500' : 'bg-violet-100 text-violet-600';
+                const badgeText = card.isReversed ? '▼ 逆位' : '▲ 正位';
+
+                return `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${borderClass}">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm ${textClass}">${card.name}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="toggleReversed(${index})" class="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-500 transition-colors" title="切換正逆位">
+                                <i data-lucide="arrow-down-up" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="removeCard(${index})" class="p-1.5 bg-red-50 hover:bg-red-100 rounded-lg text-red-400 transition-colors">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // ================= 核心傳送資料邏輯 =================
+        async function submitData() {
+            const gasUrl = document.getElementById('gasUrl').value;
+            const name = document.getElementById('clientName').value;
+            const issue = document.getElementById('recordIssue').value;
+
+            if (!gasUrl) {
+                alert("⚠️ 請先點擊右上角設定按鈕，貼上資料庫網址！");
+                toggleSettings();
+                return;
+            }
+            if (!gasUrl.includes('/exec')) return alert("⚠️ 網址格式錯誤，結尾必須是 /exec");
+            if (!name) return alert("⚠️ 請填寫個案姓名！");
+            if (!issue) return alert("⚠️ 請填寫占卜的具體問題！");
+
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i> 正在傳送至雲端...`;
+            saveBtn.classList.replace('bg-violet-600', 'bg-stone-500');
+            saveBtn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                const clientId = Date.now();
+
+                // 1. 個案基本資料包
+                const clientPayload = {
+                    action: 'addClient',
+                    id: clientId,
+                    name: name,
+                    phone: document.getElementById('clientPhone').value,
+                    gender: document.getElementById('clientGender').value,
+                    notes: document.getElementById('clientNotes').value
+                };
+
+                // 2. 轉換牌陣為字串 (如: "愚者(正), 聖杯三(逆)")
+                const cardsString = selectedCardsList.map(c => `${c.name}(${c.isReversed ? '逆' : '正'})`).join(', ');
+
+                // 3. 占卜紀錄資料包
+                const recordPayload = {
+                    action: 'addRecord',
+                    id: clientId + 1, 
+                    clientId: clientId, 
+                    date: document.getElementById('recordDate').value,
+                    category: document.getElementById('recordCategory').value,
+                    issue: issue,
+                    cardsStr: cardsString,
+                    result: document.getElementById('recordResult').value
+                };
+
+                // 傳送
+                const fetchConfig = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' };
+                await fetch(gasUrl, { ...fetchConfig, body: JSON.stringify(clientPayload) });
+                await fetch(gasUrl, { ...fetchConfig, body: JSON.stringify(recordPayload) });
+
+                alert("✅ 儲存成功！資料已同步至您的 Google 試算表。");
+                
+                // 清空表單以利下一位填寫
+                window.scrollTo(0,0);
+                location.reload(); 
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ 儲存失敗！請確認網址正確或網路連線。");
+            } finally {
+                saveBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i> 儲存個案與占卜紀錄`;
+                saveBtn.classList.replace('bg-stone-500', 'bg-violet-600');
+                saveBtn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>
